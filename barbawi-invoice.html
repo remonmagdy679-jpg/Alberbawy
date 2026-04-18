@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>البرباوي للأخشاب</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#F7F3EC; --card:#FFF; --gold:#A0720A; --gold2:#C49A1A;
+  --dark:#1C1208; --muted:#7A6A50; --border:#E0D5C0; --red:#C0392B; --green:#2A7A40;
+}
+body { font-family:'Cairo',sans-serif; background:var(--bg); min-height:100vh; color:var(--dark); }
+
+.topbar {
+  background:var(--dark); padding:14px 18px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.topbar-title { font-family:'Amiri',serif; color:var(--gold2); font-size:20px; font-weight:700; }
+.topbar-sub { color:#888; font-size:11px; }
+.topbar-logo { font-size:28px; }
+
+.tabs { display:flex; background:white; border-bottom:2px solid var(--border); }
+.tab {
+  flex:1; padding:13px 0; text-align:center; font-size:14px; font-weight:700;
+  color:var(--muted); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px;
+}
+.tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+.page { display:none; }
+.page.active { display:block; }
+
+.section { background:white; margin:12px; border-radius:14px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.07); }
+.sec-head { background:var(--dark); color:var(--gold2); padding:11px 16px; font-size:14px; font-weight:700; }
+.sec-body { padding:16px; }
+
+.field { margin-bottom:14px; }
+.field:last-child { margin-bottom:0; }
+.field label { display:block; font-size:12px; font-weight:700; color:var(--muted); margin-bottom:5px; }
+.field input {
+  width:100%; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:10px; padding:12px 14px; font-family:'Cairo',sans-serif;
+  font-size:15px; color:var(--dark); direction:rtl; -webkit-appearance:none;
+}
+.field input:focus { outline:none; border-color:var(--gold); background:white; }
+
+.item-card {
+  background:var(--bg); border:1.5px solid var(--border);
+  border-radius:12px; padding:14px; margin-bottom:10px;
+}
+.item-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.item-num {
+  background:var(--dark); color:var(--gold2); font-size:12px; font-weight:700;
+  width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+}
+.badge {
+  background:var(--gold); color:white; font-size:13px; font-weight:900;
+  padding:4px 12px; border-radius:20px;
+}
+.btn-del {
+  background:#FEE; color:var(--red); border:1.5px solid #FCC;
+  border-radius:8px; padding:5px 9px; font-size:18px; cursor:pointer; line-height:1;
+}
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.mini label { font-size:11px; font-weight:700; color:var(--muted); margin-bottom:4px; display:block; }
+.mini input {
+  width:100%; background:white; border:1.5px solid var(--border);
+  border-radius:8px; padding:10px 12px; font-family:'Cairo',sans-serif;
+  font-size:15px; font-weight:700; color:var(--dark);
+  direction:ltr; text-align:center; -webkit-appearance:none;
+}
+.mini input:focus { outline:none; border-color:var(--gold); }
+
+.btn-add {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; background:var(--green); color:white; border:none;
+  border-radius:12px; padding:14px; font-family:'Cairo',sans-serif;
+  font-size:15px; font-weight:700; cursor:pointer; margin-top:6px;
+}
+.btn-add:active { opacity:.85; }
+
+.total-bar {
+  background:var(--dark); margin:12px; border-radius:14px;
+  padding:16px 20px; display:flex; align-items:center; justify-content:space-between;
+}
+.total-label { color:#aaa; font-size:13px; font-weight:600; }
+.total-unit { color:#777; font-size:11px; }
+.total-num { color:var(--gold2); font-size:26px; font-weight:900; }
+
+.export-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 12px 24px; }
+.btn-exp {
+  border:none; border-radius:12px; padding:15px 10px;
+  font-family:'Cairo',sans-serif; font-size:15px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.btn-exp:active { opacity:.85; }
+.btn-pdf { background:var(--red); color:white; }
+.btn-img { background:#1A6FA0; color:white; }
+
+/* ── PREVIEW WRAP ── */
+.preview-wrap { padding:12px; overflow-x:auto; }
+
+/* ── INVOICE DOCUMENT - matches original exactly ── */
+#inv-doc {
+  background:#FDF6E3;
+  border:3px solid #C9A84C;
+  border-radius:4px;
+  padding:36px 40px;
+  min-width:680px;
+  width:700px;
+  margin:0 auto;
+  position:relative;
+  font-family:'Cairo',sans-serif;
+  direction:rtl;
+}
+
+.cc { position:absolute; width:32px; height:32px; border-color:#B8860B; border-style:solid; }
+.cc.tl { top:8px; right:8px; border-width:2px 2px 0 0; }
+.cc.tr { top:8px; left:8px; border-width:2px 0 0 2px; }
+.cc.bl { bottom:8px; right:8px; border-width:0 2px 2px 0; }
+.cc.br { bottom:8px; left:8px; border-width:0 0 2px 2px; }
+
+/* Title */
+.inv-title {
+  text-align:center;
+  font-family:'Amiri',serif;
+  font-size:32px;
+  font-weight:700;
+  color:#1C0E04;
+  margin-bottom:8px;
+}
+
+.inv-line {
+  height:2px;
+  background:linear-gradient(90deg,transparent,#C9A84C,transparent);
+  width:85%;
+  margin:0 auto 22px;
+}
+
+/* Meta - right aligned */
+.inv-meta-right {
+  text-align:right;
+  font-size:15px;
+  font-weight:600;
+  color:#1C0E04;
+  line-height:1.9;
+  margin-bottom:20px;
+}
+.inv-meta-right b { color:#7A5010; }
+
+/* Table */
+.inv-tbl {
+  width:100%;
+  border-collapse:collapse;
+  margin-bottom:20px;
+  table-layout:fixed;
+  font-family:'Cairo',sans-serif;
+}
+
+.col-num   { width:40px; }
+.col-desc  { width:auto; }
+.col-qty   { width:80px; }
+.col-price { width:130px; }
+.col-total { width:130px; }
+
+.inv-tbl th {
+  background:#2C1810;
+  color:#F5E6C0;
+  padding:10px 8px;
+  font-family:'Amiri',serif;
+  font-size:15px;
+  font-weight:700;
+  text-align:center;
+  border:1px solid #C9A84C;
+}
+
+.inv-tbl td {
+  padding:9px 10px;
+  border:1px solid #D4C090;
+  text-align:center;
+  color:#1C0E04;
+  background:rgba(255,255,255,0.5);
+  font-size:14px;
+  line-height:1.5;
+  vertical-align:middle;
+}
+
+.inv-tbl td.td-desc { text-align:right; font-size:14px; }
+.inv-tbl tr:nth-child(even) td { background:rgba(212,160,23,0.08); }
+
+/* Total row */
+.inv-total-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:rgba(44,24,16,0.05);
+  border:2px solid #C9A84C;
+  border-radius:4px;
+  padding:14px 20px;
+  margin-bottom:18px;
+}
+.inv-total-lbl {
+  font-family:'Amiri',serif;
+  font-size:20px;
+  font-weight:700;
+  color:#1C0E04;
+}
+.inv-total-right { text-align:left; }
+.inv-total-num {
+  font-size:30px;
+  font-weight:900;
+  color:#1C0E04;
+  font-family:'Cairo',sans-serif;
+  direction:ltr;
+}
+.inv-total-words {
+  font-size:13px;
+  color:#666;
+  margin-top:2px;
+}
+
+/* Notes */
+.inv-notes {
+  border:1px solid #C9A84C;
+  border-radius:4px;
+  padding:12px 16px;
+  margin-bottom:20px;
+  background:rgba(255,255,255,0.35);
+}
+.inv-notes-title { font-weight:700; font-size:14px; color:#1C0E04; margin-bottom:6px; }
+.inv-notes-body  { font-size:13px; color:#444; line-height:1.8; font-weight:600; }
+
+/* Footer */
+.inv-footer {
+  text-align:center;
+  border-top:1px solid #C9A84C;
+  padding-top:14px;
+  color:#777;
+  font-size:13px;
+  line-height:2;
+}
+.inv-footer b {
+  font-family:'Amiri',serif;
+  font-size:17px;
+  font-weight:700;
+  color:#1C0E04;
+  display:block;
+}
+
+.empty { text-align:center; padding:28px 16px; color:var(--muted); font-size:14px; }
+.empty span { font-size:36px; display:block; margin-bottom:8px; }
+
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:999; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+.overlay.show { display:flex; }
+.spin { width:44px; height:44px; border:4px solid #333; border-top-color:#C49A1A; border-radius:50%; animation:sp .8s linear infinite; }
+@keyframes sp { to { transform:rotate(360deg); } }
+.ov-text { color:#C49A1A; font-size:15px; font-weight:700; }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="spin"></div>
+  <div class="ov-text">جاري التصدير...</div>
+</div>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">البرباوي للأخشاب</div>
+    <div class="topbar-sub">نظام الفواتير</div>
+  </div>
+  <div class="topbar-logo">🪵</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="goTab('edit')">✏️ تحرير</div>
+  <div class="tab" onclick="goTab('preview')">👁️ معاينة</div>
+</div>
+
+<!-- EDIT -->
+<div class="page active" id="pg-edit">
+  <div class="section">
+    <div class="sec-head">📋 بيانات الفاتورة</div>
+    <div class="sec-body">
+      <div class="field"><label>اسم العميل</label><input id="f-client" type="text" placeholder="اسم العميل" value="شيخ هاني" oninput="sync()"></div>
+      <div class="field"><label>التاريخ</label><input id="f-date" type="date" dir="ltr" oninput="sync()"></div>
+      <div class="field"><label>رقم الفاتورة (اختياري)</label><input id="f-num" type="text" placeholder="001" oninput="sync()"></div>
+      <div class="field"><label>ملاحظات (اختياري)</label><input id="f-notes" type="text" placeholder="ملاحظات..." oninput="sync()"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">📦 الأصناف</div>
+    <div class="sec-body">
+      <div id="items-list"></div>
+      <button class="btn-add" onclick="addItem()">➕ إضافة صنف جديد</button>
+    </div>
+  </div>
+
+  <div class="total-bar">
+    <div><div class="total-label">الإجمالي الكلي</div><div class="total-unit">جنيه مصري</div></div>
+    <div class="total-num" id="grand">0</div>
+  </div>
+
+  <div class="export-row">
+    <button class="btn-exp btn-pdf" onclick="expPDF()">📄 PDF</button>
+    <button class="btn-exp btn-img" onclick="expImg()">🖼️ صورة</button>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="page" id="pg-preview">
+  <div class="preview-wrap">
+
+    <!-- This is the exported invoice - styled exactly like the original -->
+    <div id="inv-doc">
+      <div class="cc tl"></div><div class="cc tr"></div><div class="cc bl"></div><div class="cc br"></div>
+
+      <!-- Title -->
+      <div class="inv-title">بيان أسعار / فاتورة أعمال</div>
+      <div class="inv-line"></div>
+
+      <!-- Meta - right aligned like original -->
+      <div class="inv-meta-right">
+        <div><b>اسم المتجر:</b> البرباوي للأخشاب</div>
+        <div><b>اسم العميل:</b> <span id="p-client">—</span></div>
+        <div><b>التاريخ:</b> <span id="p-date">—</span><span id="p-numrow" style="display:none"> &nbsp;|&nbsp; <b>رقم الفاتورة:</b> <span id="p-num"></span></span></div>
+      </div>
+
+      <!-- Table - columns: # | البيان | الكمية | سعر الوحدة | الإجمالي -->
+      <table class="inv-tbl">
+        <thead><tr>
+          <th class="col-num">#</th>
+          <th class="col-desc">البيان (مواصفات الصنف)</th>
+          <th class="col-qty">الكمية</th>
+          <th class="col-price">سعر الوحدة (ج.م)</th>
+          <th class="col-total">الإجمالي (ج.م)</th>
+        </tr></thead>
+        <tbody id="p-rows"></tbody>
+      </table>
+
+      <!-- Total section -->
+      <div class="inv-total-row">
+        <div class="inv-total-lbl">إجمالي الفاتورة:</div>
+        <div class="inv-total-right">
+          <div class="inv-total-num"><span id="p-total">0</span> ج.م</div>
+          <div class="inv-total-words" id="p-words"></div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div id="p-notesbox" class="inv-notes" style="display:none">
+        <div class="inv-notes-title">ملاحظات هامة:</div>
+        <div id="p-notestxt" class="inv-notes-body"></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="inv-footer">
+        شكراً لتعاملكم معنا. نتمنى لكم دوام النجاح والتوفيق.<br>
+        <b>البرباوي للأخشاب</b>
+      </div>
+    </div>
+
+  </div>
+  <div class="export-row">
+    <button class="btn-exp btn-pdf" onclick="expPDF()">📄 تصدير PDF</button>
+    <button class="btn-exp btn-img" onclick="expImg()">🖼️ تصدير صورة</button>
+  </div>
+</div>
+
+<script>
+let items=[
+  {desc:'شباك (1 متر × 1 متر)',qty:8,price:1900},
+  {desc:'باب غرفة (90 سم)',qty:8,price:2250},
+  {desc:'باب حمام (80 سم، قايم 5 سم وحلق 6 سم)',qty:3,price:1850},
+  {desc:'باب شقة',qty:3,price:2650},
+  {desc:'منور (2 بوصة كوامل)',qty:8,price:800},
+];
+
+document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+document.getElementById('f-notes').value='جميع الأعمال المذكورة أعلاه بتخانة قطاع 55 ملي';
+renderList(); sync();
+
+function goTab(t){
+  ['edit','preview'].forEach(n=>{
+    document.getElementById('pg-'+n).classList.toggle('active',n===t);
+    document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',(t==='edit'?0:1)===i));
+  });
+  if(t==='preview') sync();
+}
+
+function renderList(){
+  const el=document.getElementById('items-list');
+  if(!items.length){
+    el.innerHTML='<div class="empty"><span>📦</span>لا توجد أصناف. اضغط الزر أدناه.</div>';
+    document.getElementById('grand').textContent='0'; return;
+  }
+  el.innerHTML=items.map((x,i)=>`
+    <div class="item-card">
+      <div class="item-top">
+        <div class="item-num">${N(i+1)}</div>
+        <div class="badge" id="b${i}">${N(x.qty*x.price)} ج.م</div>
+        <button class="btn-del" onclick="del(${i})">✕</button>
+      </div>
+      <div class="field" style="margin:0 0 0">
+        <label>اسم الصنف / المواصفات</label>
+        <input type="text" value="${x.desc}" placeholder="مثال: باب غرفة 90 سم" oninput="D(${i},this.value)">
+      </div>
+      <div class="two-col">
+        <div class="mini"><label>الكمية</label><input type="number" value="${x.qty}" min="0" oninput="Q(${i},this.value)"></div>
+        <div class="mini"><label>سعر الوحدة (ج.م)</label><input type="number" value="${x.price}" min="0" oninput="P(${i},this.value)"></div>
+      </div>
+    </div>`).join('');
+  calcTotal();
+}
+
+function D(i,v){items[i].desc=v;sync();}
+function Q(i,v){items[i].qty=+v||0;upd(i);}
+function P(i,v){items[i].price=+v||0;upd(i);}
+function upd(i){
+  const b=document.getElementById('b'+i);
+  if(b) b.textContent=N(items[i].qty*items[i].price)+' ج.م';
+  calcTotal(); sync();
+}
+function calcTotal(){
+  document.getElementById('grand').textContent=N(items.reduce((s,x)=>s+x.qty*x.price,0));
+}
+function del(i){items.splice(i,1);renderList();sync();}
+function addItem(){
+  items.push({desc:'',qty:1,price:0}); renderList();
+  setTimeout(()=>{
+    const cs=document.querySelectorAll('.item-card');
+    const last=cs[cs.length-1];
+    if(last){last.scrollIntoView({behavior:'smooth',block:'center'});
+      const inp=last.querySelector('input[type=text]');if(inp)inp.focus();}
+  },100);
+}
+
+function sync(){
+  document.getElementById('p-client').textContent=document.getElementById('f-client').value||'—';
+  const dv=document.getElementById('f-date').value;
+  if(dv){const d=new Date(dv);document.getElementById('p-date').textContent=N(d.getDate())+'/'+N(d.getMonth()+1)+'/'+N(d.getFullYear());}
+  const num=document.getElementById('f-num').value;
+  const nr=document.getElementById('p-numrow');
+  if(num){nr.style.display='inline';document.getElementById('p-num').textContent=num;}else nr.style.display='none';
+
+  let tot=0;
+  document.getElementById('p-rows').innerHTML=items.map((x,i)=>{
+    const lt=x.qty*x.price; tot+=lt;
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="td-desc">${x.desc||'—'}</td>
+      <td>${x.qty}</td>
+      <td>${x.price.toLocaleString('en-US')}</td>
+      <td style="font-weight:700">${lt.toLocaleString('en-US')}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('p-total').textContent=tot.toLocaleString('en-US');
+  document.getElementById('p-words').textContent='('+words(tot)+')';
+
+  const note=document.getElementById('f-notes').value;
+  const nb=document.getElementById('p-notesbox');
+  if(note){nb.style.display='block';document.getElementById('p-notestxt').textContent=' * '+note;}
+  else nb.style.display='none';
+}
+
+function N(n){
+  const s=Number(n).toLocaleString('ar-EG');
+  return s.replace(/0/g,'٠').replace(/1/g,'١').replace(/2/g,'٢').replace(/3/g,'٣').replace(/4/g,'٤').replace(/5/g,'٥').replace(/6/g,'٦').replace(/7/g,'٧').replace(/8/g,'٨').replace(/9/g,'٩');
+}
+
+function words(n){
+  if(!n)return'صفر جنيه مصري';
+  const o=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const t=['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  const h=['','مائة','مئتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+  function three(n){if(!n)return'';let r='',hh=Math.floor(n/100),rem=n%100,tt=Math.floor(rem/10),oo=rem%10;
+    if(hh)r+=h[hh];if(rem){if(r)r+=' و';if(rem<20)r+=o[rem];else{r+=t[tt];if(oo)r+=' و'+o[oo];}}return r;}
+  const th=Math.floor(n/1000),rest=n%1000;let r='';
+  if(th){if(th===1)r='ألف';else if(th===2)r='ألفان';else if(th<=10)r=three(th)+' آلاف';else r=three(th)+' ألف';}
+  if(rest){if(r)r+=' و';r+=three(rest);}
+  return r+' جنيه مصري لا غير.';
+}
+
+async function expPDF(){
+  goTab('preview'); await wait(300);
+  document.getElementById('overlay').classList.add('show'); await wait(200);
+  try{
+    const {jsPDF}=window.jspdf;
+    const c=await html2canvas(document.getElementById('inv-doc'),{scale:3,useCORS:true,backgroundColor:'#FDF6E3',logging:false});
+    const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth();
+    const ph=pdf.internal.pageSize.getHeight();
+    const imgW=pw-20; const imgH=(c.height*imgW)/c.width;
+    const topY=(ph-imgH)/2;
+    pdf.addImage(c.toDataURL('image/jpeg',.95),'JPEG',10,topY>0?topY:5,imgW,imgH);
+    pdf.save(`فاتورة_البرباوي_${document.getElementById('f-client').value||'عميل'}.pdf`);
+  }catch(e){alert('خطأ في التصدير');}
+  document.getElementById('overlay').classList.remove('show');
+}
+
+async function expImg(){
+  goTab('preview'); await wait(300);
+  document.getElementById('overlay').classList.add('show'); await wait(200);
+  try{
+    const c=await html2canvas(document.getElementById('inv-doc'),{scale:3,useCORS:true,backgroundColor:'#FDF6E3',logging:false});
+    const a=document.createElement('a');
+    a.download=`فاتورة_البرباوي_${document.getElementById('f-client').value||'عميل'}.png`;
+    a.href=c.toDataURL('image/png'); a.click();
+  }catch(e){alert('خطأ في التصدير');}
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+</script>
+</body>
+</html>
